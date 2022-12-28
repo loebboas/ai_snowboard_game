@@ -229,7 +229,7 @@ export class AI {
 
     // Define a function to Mutate a Network
     mutateNetwork(network: NeuralNetwork) {
-        const mutationRate = 0;
+        const mutationRate = 0.8;
         let mutantNetwork = new NeuralNetwork()
         // Update all Weights with a Factor between 0 and 1
         const newWeights: number[][][] = JSON.parse(JSON.stringify(network.getWeights())); ;
