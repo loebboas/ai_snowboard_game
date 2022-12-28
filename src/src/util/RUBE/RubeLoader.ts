@@ -32,9 +32,9 @@ export class RubeLoader {
     this.loadedImages = scene.image ? scene.image.map(imageJson => this.loadImage(imageJson)) : [];
 
     const success = this.loadedBodies.every(b => b) && this.loadedJoints.every(j => j) && this.loadedImages.every(i => i);
-    success
-      ? console.log(`R.U.B.E. scene loaded successfully`, this.loadedBodies, this.loadedJoints, this.loadedImages)
-      : console.error(`R.U.B.E. scene failed to load fully`, this.loadedBodies, this.loadedJoints, this.loadedImages);
+    //success
+    //  ? console.log(`R.U.B.E. scene loaded successfully`, this.loadedBodies, this.loadedJoints, this.loadedImages)
+    //  : console.error(`R.U.B.E. scene failed to load fully`, this.loadedBodies, this.loadedJoints, this.loadedImages);
     return success;
   }
 

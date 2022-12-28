@@ -59,9 +59,9 @@ export class State {
   private readonly seenSensors: Set<Pl.b2Body & RubeEntity> = new Set();
   private comboLeeway: Phaser.Tweens.Tween | null = null;
   private comboAccumulatedScore = 0;
-  private comboMultiplier = 0;
-  private totalTrickScore = 0;
-  private totalCollectedPresents = 0;
+  public comboMultiplier = 0;
+  public totalTrickScore = 0;
+  public totalCollectedPresents = 0;
   private trickScoreLog: TrickScore[] = [];
 
   private anglePreviousUpdate = 0;

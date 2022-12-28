@@ -1,11 +1,13 @@
 import * as Ph from 'phaser';
 import * as Pl from '@box2d/core';
 import Terrain from '../components/Terrain';
-import {Physics} from '../components/Physics';
-import {DEBUG, DEFAULT_WIDTH, DEFAULT_ZOOM, KEY_LEVEL_CURRENT, LevelKeys, SceneKeys, stats} from '../index';
-import {Backdrop} from '../components/Backdrop';
-import {PlayerController} from '../components/PlayerController';
-import {getCurrentLevel} from '../util/getCurrentLevel';
+import { Physics } from '../components/Physics';
+import { DEBUG, DEFAULT_WIDTH, DEFAULT_ZOOM, KEY_LEVEL_CURRENT, LevelKeys, SceneKeys, stats } from '../index';
+import { Backdrop } from '../components/Backdrop';
+import { PlayerController } from '../components/PlayerController';
+import { getCurrentLevel } from '../util/getCurrentLevel';
+import { AI } from '../ai/ai';
+
 
 export default class GameScene extends Ph.Scene {
   observer: Phaser.Events.EventEmitter;
@@ -13,9 +15,15 @@ export default class GameScene extends Ph.Scene {
   private terrain: Terrain;
   private playerController: PlayerController;
   private backdrop: Backdrop;
+  ai: AI;
+  lastPosition: number = 0;
+  timeStandStill: number = 0;
+  //generations: GenerationStore
 
   constructor() {
-    super({key: SceneKeys.GAME_SCENE});
+    super({ key: SceneKeys.GAME_SCENE });
+    this.ai = new AI();
+    // this.generations = new GenerationStore;
   }
 
   private create() {
@@ -74,8 +82,42 @@ export default class GameScene extends Ph.Scene {
     stats.begin();
     const delta = this.game.loop.delta / 1000;
     this.b2Physics.update(); // needs to happen before update of snowman otherwise b2Body.GetPosition() inaccurate
+
+    // If Game Over, save AI and restart
+    if (this.playerController.state.isCrashed || this.playerController.state.levelFinished || this.timeStandStill > 600) {
+      this.lastPosition = 0
+      this.timeStandStill = 0
+      this.scene.restart()
+    }
+
+    // UPDATE AI ONLY IF NOT PAUSED
+    if (!this.playerController.b2Physics.isPaused) {
+
+      // GET NEW SCORE FOR ANTI STUCK MEASURES
+      this.ai.update(this.playerController, delta, this.timeStandStill)
+      
+      const currentPosition = Math.floor(this.playerController.parts.body.GetPosition().x) 
+      // TODO: REFACTOR ANTI-STUCK
+      if (this.lastPosition <= currentPosition) {
+        this.timeStandStill = 0
+        this.lastPosition = currentPosition
+      } else {
+        if (currentPosition == 1) {
+          this.lastPosition = 1
+        }
+        this.timeStandStill += 1
+      }
+    }
+
+    if (this.timeStandStill % 100 == 0 && this.timeStandStill != 0) {
+      console.log("STANDING STILL", this.timeStandStill/100)
+    }
+
     this.playerController.update(delta);
     this.backdrop.update();
     stats.end();
   }
 }
+
+
+

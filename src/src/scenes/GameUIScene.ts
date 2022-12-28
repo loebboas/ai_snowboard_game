@@ -324,7 +324,7 @@ export default class GameUIScene extends Ph.Scene {
 
   }
 
-  private playAgain() {
+  playAgain() {
     this.music.stop();
     this.crashed = false;
     this.restartGame();

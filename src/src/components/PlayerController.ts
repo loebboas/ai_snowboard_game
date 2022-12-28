@@ -124,7 +124,7 @@ export class PlayerController {
     this.parts.prismatic && this.b2Physics.world.DestroyJoint(this.parts.prismatic);
   }
 
-  private jump(delta: number) {
+  public jump(delta: number) {
     // prevents player from jumping too quickly after a landing
     if (this.scene.game.getTime() - this.state.timeGrounded < 100) return; // TODO change to numStepsGrounded
 
@@ -148,7 +148,8 @@ export class PlayerController {
     this.parts.distanceLegRight?.SetLength(0.65);
   }
 
-  private leanBackward(delta: number) {
+
+  public leanBackward(delta: number) {
     this.parts.distanceLegLeft?.SetLength(0.55);
     this.parts.distanceLegRight?.SetLength(0.8);
     // @ts-ignore
@@ -156,7 +157,7 @@ export class PlayerController {
     this.parts.body.ApplyAngularImpulse(this.leanForce * delta);
   }
 
-  private leanForward(delta: number) {
+  public leanForward(delta: number) {
     this.parts.distanceLegLeft?.SetLength(0.8);
     this.parts.distanceLegRight?.SetLength(0.55);
     // @ts-ignore
@@ -164,14 +165,14 @@ export class PlayerController {
     this.parts.body.ApplyAngularImpulse(-this.leanForce * delta);
   }
 
-  private leanCenter(delta: number) {
+  public leanCenter(delta: number) {
     this.parts.distanceLegLeft?.SetLength(0.55);
     this.parts.distanceLegRight?.SetLength(0.55);
     // @ts-ignore
     this.parts.weldCenter.m_referenceAngle = 0;
   }
 
-  private leanUp(delta: number) {
+  public leanUp(delta: number) {
     this.parts.distanceLegLeft?.SetLength(0.8);
     this.parts.distanceLegRight?.SetLength(0.8);
     // @ts-ignore
