@@ -237,9 +237,7 @@ export class AI {
             for (let j = 0; j < newWeights[i].length; j++) {
                 for (let k = 0; k < newWeights[i][j].length; k++) {
                     if (Math.random() > mutationRate) {
-                        console.log("MUTATING " +  newWeights[i][j][k])
                         newWeights[i][j][k] = Math.random() * newWeights[i][j][k];
-                        console.log("AFTER MUTATION " +  newWeights[i][j][k])
                     }
                 }
             }
