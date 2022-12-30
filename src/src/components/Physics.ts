@@ -1,9 +1,9 @@
 import * as Ph from 'phaser';
 import * as Pl from '@box2d/core';
-import {LevelKeys, stats} from '../index';
+import { LevelKeys, stats } from '../index';
 import GameScene from '../scenes/GameScene';
-import {RubeScene} from '../util/RUBE/RubeLoaderInterfaces';
-import {RubeLoader} from '../util/RUBE/RubeLoader';
+import { RubeScene } from '../util/RUBE/RubeLoaderInterfaces';
+import { RubeLoader } from '../util/RUBE/RubeLoader';
 
 
 export class Physics extends Phaser.Events.EventEmitter {
@@ -12,7 +12,11 @@ export class Physics extends Phaser.Events.EventEmitter {
   world: Pl.b2World;
   private readonly scene: GameScene;
   private readonly stepDeltaTime = 1 / 60;
-  private readonly stepConfig = {positionIterations: 12, velocityIterations: 12};
+  private readonly stepConfig = { positionIterations: 12, velocityIterations: 12 };
+  dangerXPos: number;
+  presentXPos: number;
+  presentClosest: number;
+  playerXPos: number;
   debugDraw: Ph.GameObjects.Graphics;
   rubeLoader: RubeLoader;
 
@@ -21,6 +25,7 @@ export class Physics extends Phaser.Events.EventEmitter {
     this.debugDraw = scene.add.graphics();
     this.scene = scene;
     this.worldScale = worldScale;
+    this.dangerXPos = 0
     this.world = Pl.b2World.Create(gravity);
     this.world.SetAutoClearForces(true);
     this.world.SetContactListener({
@@ -50,15 +55,20 @@ export class Physics extends Phaser.Events.EventEmitter {
 
     // iterate through all bodies
     const worldScale = this.worldScale;
+
+    this.dangerXPos = -1;
+    this.presentXPos = -1;
     for (let body = this.world.GetBodyList(); body; body = body.GetNext()) {
+
       if (!body) continue;
       let bodyRepresentation = body.GetUserData() as Ph.GameObjects.Image;
       if (!bodyRepresentation) continue;
 
       if (bodyRepresentation) {
+
         if (body.IsEnabled()) {
           // if (true) {
-          let {x, y} = body.GetPosition();
+          let { x, y } = body.GetPosition();
           !bodyRepresentation.visible && bodyRepresentation.setVisible(true);
           bodyRepresentation.x = x * worldScale;
           bodyRepresentation.y = y * -worldScale;
@@ -66,6 +76,24 @@ export class Physics extends Phaser.Events.EventEmitter {
           bodyRepresentation.rotation = -body.GetAngle() + (bodyRepresentation.custom_origin_angle || 0); // in radians;
         } else {
           bodyRepresentation.setVisible(false);
+        }
+
+        // Get the position of the player
+        if (bodyRepresentation.frame.name == "santa-body.png") {
+          this.playerXPos = bodyRepresentation.x
+        }
+
+        // Get the distance to closest snowy_rock and the Danger Level
+        if (bodyRepresentation.frame.name == "snowy_rock.png") {
+          const dist = bodyRepresentation.x - this.playerXPos
+          if ((100 / dist) > this.dangerXPos && bodyRepresentation.x > this.playerXPos) {
+            this.dangerXPos = 100 / dist
+          }
+        } else if (bodyRepresentation.frame.name == "present_temp.png") {
+          const dist = bodyRepresentation.x - this.playerXPos
+          if ((100 / dist) > this.presentXPos && bodyRepresentation.x > this.playerXPos) {
+            this.presentXPos = 100 / dist
+          }
         }
       } else {
         // @ts-ignore

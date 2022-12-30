@@ -11,9 +11,9 @@ export class NeuralNetwork {
     biases: number[][] = []
 
     constructor() {
-        let inputSize = 5; 
-        let hiddenSize = 60;
-        let outputSize = 3;
+        let inputSize = 4; 
+        let hiddenSize = 80;
+        let outputSize = 2;
         this.inputLayer = new NeuralLayer(inputSize,hiddenSize);
         this.hiddenLayer = new NeuralLayer(hiddenSize,hiddenSize);
         this.hiddenLayer2 = new NeuralLayer(hiddenSize,hiddenSize);

@@ -22,7 +22,14 @@ export class AI {
     angleVelocity: number
     timeInAir: number
     xPos: number
+    lastXPos: number
     yPos: number
+    dangerX: number
+    presentX: number
+    jumpPoints: number[]
+    lastCalculation: number
+
+    lastOuput: number[]
 
     // PlayerController has all relevant Game data
     lastPlayerController: PlayerController;
@@ -33,10 +40,12 @@ export class AI {
         this.lastPopulation = []
 
         this.frame = 0
+        this.lastCalculation = 0
         this.presents = 1;
         this.trickScore = 1;
         this.angle = 0;
         this.angleVelocity = 0;
+        this.jumpPoints = [30, 75, 120, 173, 275, 315, 370, 420, 510, 590, 660, 820, 1035, 1140]
 
         // TO PRELOAD DATA: UNCOMMENT THIS (and comment out line 46)
         var dataSet = prompt('Please enter "data" to preload trained population or leave empty for new Networks') || "none";
@@ -47,12 +56,20 @@ export class AI {
 
 
 
-    feedForwardNet() {
-        let input = [this.angle, this.angleVelocity, this.xPos, this.yPos, this.timeInAir]
-        let o1 = this.population[this.currentModel].inputLayer.forward(input)
-        let o2 = this.population[this.currentModel].hiddenLayer.forward(o1)
-        let o3 = this.population[this.currentModel].hiddenLayer2.forward(o2)
-        let o4 = this.population[this.currentModel].outputLayer.forward(o3)
+    feedForwardNet(network: NeuralNetwork, giveInput?: number[]) {
+        // Check if near a jump point
+        let jump = 0
+        for (let i = 0; i < this.jumpPoints.length; i++) {
+            if (this.jumpPoints[i] - 1 < this.xPos && this.xPos < this.jumpPoints[i] + 4) {
+                jump = 1
+            }
+        }
+        let input = giveInput || [this.angle, this.xPos, jump, this.timeInAir]
+
+        let o1 = network.inputLayer.forward(input)
+        let o2 = network.hiddenLayer.forward(o1)
+        let o3 = network.hiddenLayer2.forward(o2)
+        let o4 = network.outputLayer.forward(o3)
         return o4
     }
 
@@ -70,6 +87,9 @@ export class AI {
         this.angle = playerController.parts.body.GetAngle() || 0
         this.angleVelocity = playerController.parts.body.GetAngularVelocity()
         this.timeInAir = playerController.board.getTimeInAir()
+        this.dangerX = playerController.b2Physics.dangerXPos;
+        this.presentX = playerController.b2Physics.presentXPos;
+
 
         var newScore = ((this.presents * 30) + (this.trickScore) + (this.xPos * 2) + 1);
         // HANDLE CRASHING OR STANDING STILL FOR A LONG TIME
@@ -81,7 +101,7 @@ export class AI {
             console.log("PRESENTS: " + this.presents);
             console.log("DISTANCE: " + this.xPos);
             console.log("TRICKSCORE: " + this.trickScore);
-            this.population[this.currentModel].logWeightAndBias()
+            // this.population[this.currentModel].logWeightAndBias()
             if (this.currentModel + 1 >= this.populationSize) {
                 console.log("CREATE NEW POPULATION")
                 this.lastPopulation.push(this.population[this.currentModel])
@@ -108,29 +128,66 @@ export class AI {
             return
         }
 
-        const output = this.feedForwardNet()
+        // BECAUSE OF DIFFERENT FRAMES:
+        // WHENEVER ROUNDED XPOS CHANGES DO FEED FORWARD, OTHERWISE KEEP DOING
+        const currentPos = Math.floor(this.xPos)
+        if (currentPos != this.lastXPos) {
+            this.lastXPos = currentPos
+            this.lastOuput = this.feedForwardNet(this.population[this.currentModel])
+        }
         // Do what the network says...
-        if (output[0] > 0.5) {
+        
+        if (this.lastOuput[0] > 0.5) {
             //console.log("BACKWARDS!!")
             playerController.leanBackward(delta)
             playerController.leanCenter(delta)
         }
-        if (output[1] > 0.5) {
-            //console.log("JUMP!!")
-            playerController.jump(delta)
-        }
-        if (output[2] > 0.5) {
+        if (this.lastOuput[1] > 0.5) {
             //console.log("FORWARD!!")
             playerController.leanForward(delta)
             playerController.leanCenter(delta)
         }
-        /*if (output[3] > 0.5) {
+        
+        
+        //if (this.lastOuput[2] > 0.5) {
+            for (let i = 0; i < this.jumpPoints.length; i++) {
+                if (this.jumpPoints[i] - 1 < this.xPos && this.xPos < this.jumpPoints[i] + 5) {
+                    playerController.jump(delta)
+                    console.log("JUMPING")
+
+                }
+            }
+            //console.log("JUMP!!")
+            //playerController.jump(delta)
+        //}
+
+        /*
+        if (this.lastOuput[3] > 0.5) {
             //console.log("CENTER!!")
             playerController.leanCenter(delta)
         }*/
         return
     }
 
+    checkIfJumps(network: NeuralNetwork) {
+        // Check he does not jump when he should not
+        let input = [0.2701611924295186, 0, -1]
+        let output = this.feedForwardNet(network, input)
+        if (output[1] > 0.5) {
+            console.log("Does jump when he should NOT")
+            return false
+        }
+        // Check that he jumps when he should
+        input = [0.2701611924295186, 1, -1]
+        output = this.feedForwardNet(network, input)
+
+        if (output[1] < 0.5) {
+            console.log("Does not jump when he should")
+            return false
+        }
+
+        return true
+    }
 
     createNextPopulation(dataSet?: string) {
 
@@ -165,7 +222,20 @@ export class AI {
                 }
 
             } else {
+                console.log("START CREATING VALID NETWORKS")
+                // ADD ONLY NETWORKS THAT JUMP
                 for (let i = 0; i < this.populationSize; i++) {
+                    let newNetwork = new NeuralNetwork()
+                    if (i == -1) {
+                        console.log("Trying to add")
+                        let validNetwork = false
+                        while (!validNetwork) {
+                            console.log("Trying...")
+                            newNetwork = new NeuralNetwork()
+                            validNetwork = this.checkIfJumps(newNetwork)
+                        }
+                        console.log("FOUND SOMETHING")
+                    }
                     nextPopulation.push(new NeuralNetwork());
                 }
             }
@@ -188,7 +258,7 @@ export class AI {
                     const mutatedNetwork = this.mutateNetwork(this.lastPopulation[selected])
                     console.log("POS: " + i + " MUTATED " + selected + " WITH SCORE: " + this.lastPopulation[selected].score)
                     nextPopulation.push(mutatedNetwork);
-                   
+
                 } else if (i < this.populationSize * 0.95) {
                     // Select one of the top five as a parent 1
                     const par1 = Math.floor(Math.random() * this.populationSize * 0.1)
@@ -217,13 +287,17 @@ export class AI {
         console.log("COPY THIS TO SAVE THE LAST GENERATION!!!")
         const weightsToSave: number[][][][] = []
         const biasesToSave: number[][][] = []
-        for (let i = 0; i < this.populationSize / 2; i++) {
+
+        // Only Save the top 20%
+        for (let i = 0; i < this.populationSize * 0.2; i++) {
             const w = this.lastPopulation[i].getWeights()
             const b = this.lastPopulation[i].getBiases()
             weightsToSave.push(w)
             biasesToSave.push(b)
         }
+
         console.log(JSON.stringify([weightsToSave, biasesToSave]));
+
     }
 
 
@@ -232,7 +306,7 @@ export class AI {
         const mutationRate = 0.8;
         let mutantNetwork = new NeuralNetwork()
         // Update all Weights with a Factor between 0 and 1
-        const newWeights: number[][][] = JSON.parse(JSON.stringify(network.getWeights())); ;
+        const newWeights: number[][][] = JSON.parse(JSON.stringify(network.getWeights()));;
         for (let i = 0; i < newWeights.length; i++) {
             for (let j = 0; j < newWeights[i].length; j++) {
                 for (let k = 0; k < newWeights[i][j].length; k++) {
@@ -243,7 +317,7 @@ export class AI {
             }
         }
         mutantNetwork.updateWeights(newWeights);
-        
+
         // Update all Biases with a Factor between 0 and 1
         const newBiases: number[][] = JSON.parse(JSON.stringify(network.getBiases()));
         for (let i = 0; i < newBiases.length; i++) {
@@ -295,8 +369,6 @@ export class AI {
             }
         }
         offspringNeuralNetwork.updateBiases(newBiases)
-
-        offspringNeuralNetwork.logWeightAndBias()
 
         // Return the new offspring individual
         return offspringNeuralNetwork

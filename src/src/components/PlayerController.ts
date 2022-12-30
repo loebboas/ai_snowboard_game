@@ -1,13 +1,13 @@
 import * as Ph from 'phaser';
 import * as Pl from '@box2d/core';
-import {Physics} from './Physics';
-import {DEBUG, stats} from '../index';
+import { Physics } from './Physics';
+import { DEBUG, stats } from '../index';
 import GameScene from '../scenes/GameScene';
-import {WickedSnowboard} from './Snowboard';
-import {State} from './State';
-import {RubeEntity} from '../util/RUBE/RubeLoaderInterfaces';
-import {DebugMouseJoint} from '../util/DebugMouseJoint';
-import {PanelIds} from '../scenes/GameUIScene';
+import { WickedSnowboard } from './Snowboard';
+import { State } from './State';
+import { RubeEntity } from '../util/RUBE/RubeLoaderInterfaces';
+import { DebugMouseJoint } from '../util/DebugMouseJoint';
+import { PanelIds } from '../scenes/GameUIScene';
 
 
 export class PlayerController {
@@ -93,7 +93,7 @@ export class PlayerController {
     if (!this.state.isCrashed && !this.state.levelFinished) {
       this.board.update(delta);
 
-      // Touch/Mouse input
+      // Touch/Mouse input        playerController.board.ini
       if (this.scene.input.activePointer?.isDown && this.scene.input.activePointer.wasTouch) {
         const pointer = this.scene.input.activePointer; // activePointer undefined until after first touch input
         pointer.motionFactor = 0.2;
@@ -125,20 +125,20 @@ export class PlayerController {
   }
 
   public jump(delta: number) {
+
     // prevents player from jumping too quickly after a landing
     if (this.scene.game.getTime() - this.state.timeGrounded < 100) return; // TODO change to numStepsGrounded
 
     this.leanUp(delta);
-
-    const {isTailGrounded, isCenterGrounded, isNoseGrounded} = this.board;
+    const { isTailGrounded, isCenterGrounded, isNoseGrounded } = this.board;
     if (isCenterGrounded || isTailGrounded || isNoseGrounded) {
       const force = this.jumpForce * delta;
       const jumpVector = this.jumpVector.Set(0, 0);
       // TODO these kind of values should come from the RUBE export.
       //  That would make the game somewhat moddable once players can create and download custom levels and characters.
       isCenterGrounded
-        ? this.parts.body.GetWorldVector({x: 0, y: force * 0.3}, jumpVector).Add({x: 0, y: force * 1.25})
-        : this.parts.body.GetWorldVector({x: 0, y: force * 0.5}, jumpVector).Add({x: 0, y: force * 0.85});
+        ? this.parts.body.GetWorldVector({ x: 0, y: force * 0.3 }, jumpVector).Add({ x: 0, y: force * 1.25 })
+        : this.parts.body.GetWorldVector({ x: 0, y: force * 0.5 }, jumpVector).Add({ x: 0, y: force * 0.85 });
       this.parts.body.ApplyForceToCenter(jumpVector, true);
     }
   }
